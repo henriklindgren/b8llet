@@ -16,9 +16,11 @@ player.sprite = 1
 player.bullet_sprite = 2
 player.speed = 1
 player.moving = direction.none
+player.reload = 0
 bullets = {}
 bullets.sprite = 2
 bullets.speed = 1
+bullets.reload = 14
 shots = {}
 function _draw()
 	cls()
@@ -30,6 +32,9 @@ function _draw()
 end
 function _update()
 	player.moving = direction.none
+	if player.reload > 0 then
+		player.reload -= 1
+	end
 	if btn(0) then
 		player.moving = direction.left
 	elseif btn(1) then
@@ -42,9 +47,10 @@ function _update()
 	if btn(4) then
 		-- Z
 	end
-	if btn(5) then
+	if btn(5) and player.reload == 0 then
 		-- X
 		shots[#shots + 1] = {player.x, player.y}
+		player.reload = bullets.reload
 	end
 	for shot_index=1, #shots do
 		local shot = shots[shot_index]
