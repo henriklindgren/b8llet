@@ -1,8 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
-SCREEN_SIZE = 128
-SPRITE_SIZE = 8
+screen_size = 128
+sprite_size = 8
+max_pos_right = screen_size - sprite_size
+min_pos_left = 0
 direction = {}
 direction.left = 0
 direction.right = 1
@@ -22,6 +24,13 @@ bullets.sprite = 2
 bullets.speed = 1
 bullets.reload = 14
 shots = {}
+enemies = {}
+enemy_conf = {}
+enemy_conf.spawn_rate = 300
+enemy_conf.last_spawn = enemy_conf.spawn_rate
+enemy_conf.type_brrap = 16
+enemy_conf.type_70s = 17
+enemy_conf.speed = 2
 function _draw()
 	cls()
 	spr(player.sprite, player.x, player.y)
@@ -29,12 +38,34 @@ function _draw()
 		local shot = shots[i]
 		spr(bullets.sprite, shot[1], shot[2])
 	end
+	for i=1, #enemies do
+		local enemy = enemies[i]
+		spr(enemy[1], enemy[2], enemy[3])
+	end
 end
+
+function move_enemy(enemy)
+	if enemy[4] == direction.right then
+		if enemy[2] >= max_pos_right then
+			return {enemy[1], enemy[2] - enemy_conf.speed, enemy[3] + sprite_size, direction.left}
+		else
+			return {enemy[1], enemy[2] + enemy_conf.speed, enemy[3], direction.right}
+		end
+	else
+		if enemy[2] <= min_pos_left then
+			return {enemy[1], enemy[2] + enemy_conf.speed, enemy[3] + sprite_size, direction.right}
+		else
+			return {enemy[1], enemy[2] - enemy_conf.speed, enemy[3], direction.left}
+		end
+	end
+end
+
 function _update()
 	player.moving = direction.none
-	if player.reload > 0 then
+	if player.reload > min_pos_left then
 		player.reload -= 1
 	end
+	
 	if btn(0) then
 		player.moving = direction.left
 	elseif btn(1) then
@@ -44,30 +75,48 @@ function _update()
 	elseif btn(3) then
 		-- down
 	end
+	
 	if btn(4) then
-		-- Z
+		-- z
 	end
+	
 	if btn(5) and player.reload == 0 then
-		-- X
+		-- x
 		shots[#shots + 1] = {player.x, player.y}
 		player.reload = bullets.reload
+		sfx(1, 2, 0, 4)
 	end
+	
 	for shot_index=1, #shots do
 		local shot = shots[shot_index]
 		shots[shot_index] = {shot[1], shot[2] - bullets.speed}
 	end
+	
+	for enemy_index=1, #enemies do
+		local enemy = enemies[enemy_index]
+		enemies[enemy_index] = move_enemy(enemy)
+	end
+	
 	if player.moving == direction.left then
 		player.x -= player.speed		
 	elseif player.moving == direction.right then
 		player.x += player.speed
-		
 	end
-	if player.x > SCREEN_SIZE - SPRITE_SIZE then
-		player.x = SCREEN_SIZE - SPRITE_SIZE
-	elseif player.x < 0 then
-		player.x = 0
+	
+	if player.x > max_pos_right then
+		player.x = max_pos_right
+	elseif player.x < min_pos_left then
+		player.x = min_pos_left
+	end
+	
+	if enemy_conf.last_spawn >= enemy_conf.spawn_rate then
+		enemies[#enemies + 1] = {16, 10, 20, direction.right}
+		enemy_conf.last_spawn = 0
+	else
+		enemy_conf.last_spawn += 1
 	end
 end
+music(0)
 __gfx__
 000000000000b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000000000000b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -88,4 +137,11 @@ __map__
 1300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0013000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-0001000007040070300703007030070300703007040080400804008040080400a0400b0400c0400c0400d0400e040100501005000050000500006000000000000000000000000000000000000000000000000000
+011000200c043000001864300000186430000018643000000c043000000000000000186430000000000000000c043000000000000000186430000000000000000c04300000000000000018643000001864300000
+01100004055510050207700097000b700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+__music__
+03 00424344
+
