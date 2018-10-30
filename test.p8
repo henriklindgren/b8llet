@@ -31,6 +31,9 @@ enemy_conf.last_spawn = enemy_conf.spawn_rate
 enemy_conf.type_brrap = 16
 enemy_conf.type_70s = 17
 enemy_conf.speed = 2
+collide_every = 40
+last_collided = collide_every
+
 function _draw()
 	cls()
 	spr(player.sprite, player.x, player.y)
@@ -60,7 +63,41 @@ function move_enemy(enemy)
 	end
 end
 
+function collide_bullet_enemy(bullet, enemy)
+	local bullet_x = bullet[1]
+	local bullet_y = bullet[2]
+	local enemy_x = enemy[2]
+	local enemy_y = enemy[3]
+	if bullet_x > enemy_x and bullet_x < enemy_x + sprite_size and bullet_y > enemy_y and bullet_y < enemy_y + sprite_size then
+		return True
+	end
+	return False
+end
+
+function collide_bullets_enemies()
+	if #shots < 1 then
+		return enemies
+	end
+	local alive = {}
+	for b=1, #shots do
+		local bullet = shots[b]
+		for e=1, #enemies do
+			local enemy = enemies[e]
+			if not collide_bullet_enemy(bullet, enemy) then
+				alive[#alive + 1] = enemy
+			end
+		end
+	end
+	return alive
+end
+
 function _update()
+	if last_collided == collide_every then
+		enemies = collide_bullets_enemies(shots, enemies)
+		last_collided = 0
+	else
+		last_collided += 1
+	end
 	player.moving = direction.none
 	if player.reload > min_pos_left then
 		player.reload -= 1
