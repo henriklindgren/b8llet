@@ -39,3 +39,8 @@ luac.out
 *.x86_64
 *.hex
 
+# pico-8 Exports
+*.js
+*.html
+*.bin
+*.png
