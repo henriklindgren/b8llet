@@ -31,6 +31,9 @@ enemy_conf.last_spawn = enemy_conf.spawn_rate
 enemy_conf.type_brrap = 16
 enemy_conf.type_70s = 17
 enemy_conf.speed = 2
+collide_every = 40
+last_collided = collide_every
+
 function _draw()
 	cls()
 	spr(player.sprite, player.x, player.y)
@@ -47,20 +50,65 @@ end
 function move_enemy(enemy)
 	if enemy[4] == direction.right then
 		if enemy[2] >= max_pos_right then
-			return {enemy[1], enemy[2] - enemy_conf.speed, enemy[3] + sprite_size, direction.left}
+			enemy[2] -= enemy_conf.speed
+			enemy[3] += sprite_size
+			enemy[4] = direction.left
 		else
-			return {enemy[1], enemy[2] + enemy_conf.speed, enemy[3], direction.right}
+			enemy[2] += enemy_conf.speed
+			enemy[4] = direction.right
 		end
 	else
 		if enemy[2] <= min_pos_left then
-			return {enemy[1], enemy[2] + enemy_conf.speed, enemy[3] + sprite_size, direction.right}
+			enemy[2] += enemy_conf.speed
+			enemy[3] += sprite_size
+			enemy[4] = direction.right
 		else
-			return {enemy[1], enemy[2] - enemy_conf.speed, enemy[3], direction.left}
+			enemy[2] -= enemy_conf.speed
+			enemy[4] = direction.left
+		end
+	end
+end
+
+function collide_bullet_enemy(bullet, enemy)
+	local bullet_x = bullet[1]
+	local bullet_y = bullet[2]
+	local enemy_x = enemy[2]
+	local enemy_y = enemy[3]
+	if bullet_x > enemy_x and bullet_x < enemy_x + sprite_size and bullet_y > enemy_y and bullet_y < enemy_y + sprite_size then
+		stop("collided!")
+		return True
+	end
+	return False
+end
+
+function collide_bullets_enemies(shots, enemies)
+	if #shots < 1 then
+		return enemies
+	end
+	local alive = {}
+	for b=1, #shots do
+		local bullet = shots[b]		
+		for e=1, #enemies do
+			local enemy = enemies[e]
+			if collide_bullet_enemy(bullet, enemy) then
+				enemies[e] = nil
+			end
+		end
+		local e=1
+		while e <= #enemies do
+			if not enemies[e] then
+				for i=e, #enemies - 1 do
+					enemies[i] = enemies[i + 1]
+				end
+			else
+				e += 1
+			end
 		end
 	end
 end
 
 function _update()
+	collide_bullets_enemies(shots, enemies)
 	player.moving = direction.none
 	if player.reload > min_pos_left then
 		player.reload -= 1
@@ -89,12 +137,11 @@ function _update()
 	
 	for shot_index=1, #shots do
 		local shot = shots[shot_index]
-		shots[shot_index] = {shot[1], shot[2] - bullets.speed}
+		shot[2] = shot[2] - bullets.speed
 	end
 	
 	for enemy_index=1, #enemies do
-		local enemy = enemies[enemy_index]
-		enemies[enemy_index] = move_enemy(enemy)
+		move_enemy(enemies[enemy_index])
 	end
 	
 	if player.moving == direction.left then
